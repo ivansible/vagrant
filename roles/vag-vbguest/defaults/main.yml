@@ -1,3 +1,13 @@
 ---
-# defaults for ivansible.vag_vbguest
+vag_vbguest_enable: false
+vag_vbguest_freeze_kernel: false
+
+vag_vbguest_kernel_packages:
+  - linux-image-generic
+  - linux-image-virtual
+  - linux-headers-generic
+  - linux-headers-virtual
+  - linux-virtual
+
+vag_vbguest_module_path: /lib/modules/{{ ansible_kernel }}/misc/vboxguest.ko
 ...
