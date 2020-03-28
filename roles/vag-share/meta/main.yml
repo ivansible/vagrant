@@ -16,8 +16,8 @@ galaxy_info:
         - bionic
 
   galaxy_tags:
-    - linux
-    - ansible
-
-  github_branch: master
+    - developer
+    - vagrant
+    - samba
+    - cifs
 ...
