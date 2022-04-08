@@ -1,5 +1,6 @@
 ---
-- debug:
+- name: report probing stage
+  debug:
     msg: "Probing login methods with python {{ try_python or 'default' }}"
 
 

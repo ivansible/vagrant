@@ -42,7 +42,8 @@
           - "{{ user_data.msg | default(user_data) }}"
         quiet: true
 
-    - debug:
+    - name: warn about renamed user
+      debug:
         msg:
           - "Warning: renaming an existing user"
           - "- uid: {{ desired_uid }}"
@@ -51,7 +52,8 @@
           - "- old home: {{ old_home }}"
           - "- new home: {{ new_home }}"
       when: can_move
-    - debug:
+    - name: warn about created user
+      debug:
         msg:
           - "Warning: creating a new user"
           - "- old user: {{ new_user }}"
@@ -112,10 +114,12 @@
   set_fact:
     uid_ok: "{{ desired_uid
               | ternary(user_data.uid | int == desired_uid | int, true) }}"
-- debug:
+- name: report success
+  debug:
     msg: "Success: user {{ new_user }} has uid {{ desired_uid }}"
   when: uid_ok
-- debug:
+- name: notice about user id
+  debug:
     msg: "Notice: user {{ new_user }} has uid {{ user_data.uid }} (wanted {{ desired_uid }})"
   when: not uid_ok
 ...

@@ -143,5 +143,5 @@
   file:
     path: "{{ new_home }}/.ansible"
     state: absent
-  ignore_errors: true
+  failed_when: false
 ...

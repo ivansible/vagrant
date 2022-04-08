@@ -79,7 +79,8 @@
   when: ssh_config is changed
   tags: linen_firewall
 
-- debug:
+- name: warn about open ssh port
+  debug:
     msg:
       - "******** WARNING! ********"
       - "Old SSH port {{ found_port }} is left open!"

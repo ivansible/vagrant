@@ -1,5 +1,6 @@
 ---
-- debug:
+- name: report detection stage
+  debug:
     msg: "Detecting connection method..."
 
 # Purge local ARP cache on controller before trying TCP connection.
@@ -64,7 +65,8 @@
     msg: "[{{ inventory_hostname }}] Cannot ping SSH on any port! Aborting."
     quiet: true
 
-- debug:
+- name: report detected ssh port
+  debug:
     msg: "Found SSH on port {{ found_port }} !.."
 
 
@@ -82,7 +84,7 @@
     - "{{ linen_new_keyfile_ }}"
     - "{{ linen_vagrant_keyfile }}"
   connection: local
-  ignore_errors: true
+  failed_when: false
 
 - include_tasks: probe.yml
   loop_control:
