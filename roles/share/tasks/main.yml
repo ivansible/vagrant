@@ -21,7 +21,7 @@
 - name: activate the utf8 fs charset kernel module (ok to fail, if no such module)
   command: /sbin/modprobe nls_utf8
   become: true
-  ignore_errors: true
+  failed_when: false
   when: apt_result is changed
 
 - name: record credentials in a file, if permitted
