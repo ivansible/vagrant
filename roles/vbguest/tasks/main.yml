@@ -12,7 +12,11 @@
 - name: setup virtualbox guest additions
   block:
     - name: temporarily unhold kernel packages
-      command: apt-mark unhold {{ vag_vbguest_kernel_packages |join(' ') }}
+      ## this step runs with block only when kernel modules are absent
+      # noqa no-changed-when
+      command: apt-mark unhold {{ packages }}
+      vars:
+        packages: "{{ vag_vbguest_kernel_packages |join(' ') }}"
 
     - name: install prerequisites for virtualbox guest additions
       apt:
@@ -22,6 +26,7 @@
           - build-essential
 
     - name: rebuild kernel modules for virtualbox guest additions
+      # noqa no-changed-when
       command: /sbin/rcvboxadd quicksetup all
 
     - name: restart guest additions services
@@ -33,13 +38,16 @@
         - vboxadd
         - vboxadd-service
   become: true
-  when: vag_vbguest_enable |bool
-        and vbguest_tools.stat.exists
-        and not vbguest_kernel_module.stat.exists
+  when:
+    - vag_vbguest_enable |bool
+    - vbguest_tools.stat.exists
+    - not vbguest_kernel_module.stat.exists
 
 - name: freeze kernel version to prevent problems with guest additions
   when: vag_vbguest_freeze_kernel |bool
-  command: apt-mark hold {{ vag_vbguest_kernel_packages |join(' ') }}
+  command: apt-mark hold {{ packages }}
+  vars:
+    packages: "{{ vag_vbguest_kernel_packages |join(' ') }}"
   become: true
   changed_when: false
 ...
