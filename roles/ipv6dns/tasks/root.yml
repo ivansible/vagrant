@@ -1,10 +1,10 @@
 ---
 - name: install cloudflare cli
-  pip:
+  ansible.builtin.pip:
     name: cloudflare
 
 - name: configure parameters for ipv6dns-renew
-  copy:
+  ansible.builtin.copy:
     dest: /etc/default/ipv6dns-renew
     content: |
       IFACE="{{ ipv6dns_interface }}"
@@ -12,25 +12,26 @@
       TOKEN="{{ ipv6dns_cf_token }}"
       HOST="{{ ipv6dns_host }}"
       ZONE="{{ ipv6dns_zone }}"
+    # " dummy quote to fix vim highlighter
     mode: 0640
   notify: restart service ipv6dns-renew
 
 - name: create script ipv6dns-renew.sh
-  copy:
+  ansible.builtin.copy:
     src: ipv6dns-renew.sh
     dest: /usr/local/sbin/ipv6dns-renew.sh
     mode: 0750
   notify: restart service ipv6dns-renew
 
 - name: setup service ipv6dns-renew
-  copy:
+  ansible.builtin.copy:
     src: ipv6dns-renew.service
     dest: /etc/systemd/system/ipv6dns-renew.service
     mode: 0644
   notify: restart service ipv6dns-renew
 
 - name: enable service ipv6dns-renew
-  systemd:
+  ansible.builtin.systemd:
     name: ipv6dns-renew
     state: started
     enabled: true

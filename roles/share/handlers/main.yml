@@ -1,12 +1,12 @@
 ---
-# handlers for vag-share
+## handlers for ivansible.vagrant.share
 
 - name: activate systemd mounts
-  systemd:
+  ansible.builtin.systemd:
     name: remote-fs.target
     state: restarted
     daemon_reload: true
   become: true
   ## possible error: "path is already a mount point, refusing start"
-  # ignore_errors: true
+  # failed_when: false
 ...

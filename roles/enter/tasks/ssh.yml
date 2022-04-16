@@ -1,6 +1,6 @@
 ---
 - name: check that ufw is present
-  stat:
+  ansible.builtin.stat:
     path: /usr/sbin/ufw
     get_checksum: false
   register: ufw_binary
@@ -9,11 +9,11 @@
 - name: install ufw
   block:
     - name: apt install ufw without update (fast)
-      apt:
+      ansible.builtin.apt:
         name: ufw
   rescue:
     - name: apt install ufw with update (slower)
-      apt:
+      ansible.builtin.apt:
         name: ufw
         update_cache: true
       register: apt_ufw_result
@@ -23,7 +23,7 @@
   tags: linen_firewall
 
 - name: allow new port through ubuntu firewall in advance
-  ufw:
+  community.general.ufw:
     rule: allow
     port: "{{ new_port }}"
     proto: tcp
@@ -31,29 +31,29 @@
   tags: linen_firewall
 
 - name: configure new ssh port
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /etc/ssh/sshd_config
     regexp: "^Port"
     line: "Port {{ new_port }}"
   register: ssh_config
 
 - name: restart ssh
-  systemd:
+  ansible.builtin.systemd:
     name: ssh
     state: restarted
   when: ssh_config is changed
 
 - name: switch connection to new port
-  set_fact:
+  ansible.builtin.set_fact:
     ansible_ssh_port: "{{ new_port }}"
 
 - name: reset ansible connection
-  meta: reset_connection
+  ansible.builtin.meta: reset_connection
 
 - name: reconnect after switching ports
   block:
     - name: wait for reconnection
-      wait_for_connection:
+      ansible.builtin.wait_for_connection:
         timeout: "{{ linen_wait_timeout }}"
       register: result
       until: result is successful
@@ -61,30 +61,31 @@
   when: ssh_config is changed
 
 - name: enable ubuntu firewall
-  ufw:
+  community.general.ufw:
     state: enabled
   when: linen_ufw |bool and linen_secure |bool
   tags: linen_firewall
 
 - name: pause before testing connection
-  wait_for:
+  ansible.builtin.wait_for:
     timeout: "{{ linen_wait_timeout }}"
   when: ssh_config is changed
   tags: linen_firewall
 
 - name: test connection with new port
-  ping:
+  ansible.builtin.ping:
   register: ping_result
   until: ping_result is successful
   when: ssh_config is changed
   tags: linen_firewall
 
 - name: warn about open ssh port
-  debug:
+  ansible.builtin.debug:
     msg:
       - "******** WARNING! ********"
       - "Old SSH port {{ found_port }} is left open!"
-  when: linen_secure |bool
-        and ssh_config is changed
+  when:
+    - linen_secure |bool
+    - ssh_config is changed
   tags: linen_firewall
 ...

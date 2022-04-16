@@ -1,13 +1,13 @@
 ---
 - name: authorize my public keys (also fix permissions)
-  authorized_key:
-    # ansible_user_id should have been updated to new user
+  ansible.posix.authorized_key:
+    ## ansible_user_id should have been updated to new user
     user: "{{ ansible_user_id }}"
     key: "{{ lookup('pipe', keygen_cmd) }}"
     comment: "{{ new_keyfile |basename |regex_replace('[.]key$') }}"
     state: present
   vars:
-    # deliberately use ';' in the pipe to ignore chmod errors
+    ## deliberately use ';' in the pipe to ignore chmod errors
     keygen_cmd: 'chmod 600 "{{ item }}"; ssh-keygen -y -f "{{ item }}"'
   when: item != ''  # noqa 602
   loop:
@@ -16,18 +16,18 @@
 - name: remove insecure (vagrant) keys
   block:
     - name: switch to new key before removing insecure keys
-      set_fact:
+      ansible.builtin.set_fact:
         ansible_ssh_private_key_file: "{{ new_keyfile }}"
       when: found_keyfile in [linen_vagrant_keyfile]
 
     - name: remove insecure keys
-      authorized_key:
-        # ansible_user_id should have been updated to new user
+      ansible.posix.authorized_key:
+        ## ansible_user_id should have been updated to new user
         user: "{{ ansible_user_id }}"
         key: "{{ lookup('pipe', keygen_cmd) }}"
         state: absent
       vars:
-        # deliberately use ';' in the pipe to ignore chmod errors
+        ## deliberately use ';' in the pipe to ignore chmod errors
         keygen_cmd: 'chmod 600 "{{ item }}"; ssh-keygen -y -f "{{ item }}"'
       when: item != ''  # noqa 602
       loop:
@@ -37,14 +37,15 @@
     - name: reconnect after removing keys
       block:
         - name: wait for reconnection
-          wait_for_connection:
+          ansible.builtin.wait_for_connection:
             timeout: "{{ linen_wait_timeout }}"
           register: result
           until: result is successful
           retries: "{{ linen_conn_retries }}"
       when: remove_keys is changed
-  # do not remove keys if they were just added or if nothing was added
-  when: linen_secure |bool
-        and linen_vagrant_keyfile != new_keyfile
-        and new_keyfile != ''                    # noqa 602
+  ## do not remove keys if they were just added or if nothing was added
+  when:
+    - linen_secure |bool
+    - linen_vagrant_keyfile != new_keyfile
+    - new_keyfile != ''  # noqa 602
 ...

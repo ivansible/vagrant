@@ -2,7 +2,7 @@
 - name: rename user in system files (slow way)
   block:
     - name: fix user name and home in passwd files
-      replace:
+      ansible.builtin.replace:
         regexp: "{{ item.0.src }}"
         replace: "{{ item.0.dst }}"
         path: "{{ item.1 }}"
@@ -19,7 +19,7 @@
         label: "{{ item.1 }} {{ item.0.src }}"
 
     - name: fix user name in group files
-      replace:
+      ansible.builtin.replace:
         regexp: "{{ item.0.src }}"
         replace: "{{ item.0.dst }}"
         path: "{{ item.1 }}"
@@ -40,13 +40,13 @@
         label: "{{ item.1 }} {{ item.0.src }}"
 
     - name: get list of sudoers files
-      find:
+      ansible.builtin.find:
         path: /etc/sudoers.d
         excludes: README
       register: sudoers_files
 
     - name: fix user name in sudoers files
-      replace:
+      ansible.builtin.replace:
         regexp: "^{{ old_user }}"
         replace: "{{ new_user }}"
         path: "{{ item }}"
@@ -59,7 +59,7 @@
 - name: rename user in system files (quick way)
   block:
     - name: fix user name and home in passwd files
-      command: >
+      ansible.builtin.command: >
         sed -i
             -e 's!^{{ old_user }}:!{{ new_user }}:!'
             -e 's!:/home/{{ old_user }}:!:/home/{{ new_user }}:!'
@@ -71,7 +71,7 @@
       tags: skip_ansible_lint  # noqa 303 (no effect!)
 
     - name: fix user name in group files
-      command: >
+      ansible.builtin.command: >
         sed -i
             -e 's!^{{ old_user }}:!{{ new_user }}:!'
             -e 's!:{{ old_user }}$!:{{ new_user }}!'
@@ -86,7 +86,7 @@
       tags: skip_ansible_lint  # noqa 303 (no effect!)
 
     - name: fix user name in sudoers files
-      shell:
+      ansible.builtin.shell:
         sed -i
             -e 's!^{{ old_user }}!{{ new_user }}!'
           /etc/sudoers
@@ -100,8 +100,8 @@
 # 'async'+'poll' prevents the unreachable error, but incompatible with 'raw'
 # after testing many combinations, 'command' is the only viable alternative
 - name: move home directory
-  command: mv "{{ old_home }}" "{{ new_home }}"
-  args:
+  ansible.builtin.command:
+    cmd: mv "{{ old_home }}" "{{ new_home }}"
     removes: "{{ old_home }}"
     creates: "{{ new_home }}"
   ignore_errors: true
@@ -110,11 +110,11 @@
 
 # reconnect early after directory has moved
 - name: switch connection to renamed user
-  set_fact:
+  ansible.builtin.set_fact:
     ansible_ssh_user: "{{ new_user }}"
 
 - name: wait for reconnection
-  wait_for_connection:
+  ansible.builtin.wait_for_connection:
     timeout: "{{ linen_wait_timeout }}"
   register: result
   until: result is successful
@@ -122,25 +122,27 @@
 
 
 - name: stat the new home directory
-  stat:
+  ansible.builtin.stat:
     path: "{{ new_home }}"
   register: new_home_state
 
 - name: assert that new home directory exists
-  assert:
-    that: new_home_state.stat.exists and new_home_state.stat.isdir
+  ansible.builtin.assert:
+    that:
+      - new_home_state.stat.exists
+      - new_home_state.stat.isdir
     msg:
       - "There was an error moving home directory"
-      - "{{ move_home_result.msg | default(move_home_result) }}"
+      - "{{ move_home_result.msg | d(move_home_result) }}"
     quiet: 128
 
 - name: ensure old directory is removed
-  file:
+  ansible.builtin.file:
     path: "{{ old_home }}"
     state: absent
 
 - name: remove temporary files in the new directory
-  file:
+  ansible.builtin.file:
     path: "{{ new_home }}/.ansible"
     state: absent
   failed_when: false

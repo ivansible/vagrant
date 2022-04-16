@@ -1,8 +1,8 @@
 ---
-# handlers for vag_ipv6dns
+## handlers for ivansible.vagrant.ipv6dns
 
 - name: restart service ipv6dns-renew
-  systemd:
+  ansible.builtin.systemd:
     name: ipv6dns-renew
     state: restarted
   become: true

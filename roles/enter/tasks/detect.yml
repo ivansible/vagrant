@@ -1,45 +1,46 @@
 ---
 - name: report detection stage
-  debug:
+  ansible.builtin.debug:
     msg: "Detecting connection method..."
 
-# Purge local ARP cache on controller before trying TCP connection.
-# This step prevents network errors with ever-changing Vagrant boxes.
+## Purge local ARP cache on controller before trying TCP connection.
+## This step prevents network errors with ever-changing Vagrant boxes.
 
 - name: purge local arp cache
-  command: arp -d "{{ ansible_host }}"
+  ansible.builtin.command:
+    cmd: arp -d "{{ ansible_host }}"
   connection: local
   become: true
   changed_when: false
   failed_when: false
 
-# SSH fails to connect if private key has mode other than 0600.
-# If this step fails with "file not found", please manually copy the
-# `file/secret/*.key` files from this role to playbook or inventory.
+## SSH fails to connect if private key has mode other than 0600.
+## If this step fails with "file not found", please manually copy the
+## `file/secret/*.key` files from this role to playbook or inventory.
 - name: fix permissions of the local vagrant key file
-  file:
+  ansible.builtin.file:
     path: "{{ linen_vagrant_keyfile }}"
     mode: 0600
   connection: local
   become: false
 
 - name: remove explicit inventory python from the search list
-  # Please note that inventory python will still be probed,
-  # but it is encoded by an empty item prepended to the list.
-  set_fact:
+  ## Please note that inventory python will still be probed,
+  ## but it is encoded by an empty item prepended to the list.
+  ansible.builtin.set_fact:
     linen_try_real_pythons:
       "{{ ([''] + linen_try_pythons) | reject('equalto',orig_python) | list }}"
 
 
-# =========================
-# Probe multiple SSH ports
+## =========================
+## Probe multiple SSH ports
 
 - name: initialize fact "try_port" with flag "failed"
-  set_fact:
+  ansible.builtin.set_fact:
     try_port: {failed: true}
 
 - name: try next ssh port
-  wait_for:
+  ansible.builtin.wait_for:
     host: "{{ ansible_host }}"
     port: "{{ item }}"
     state: present
@@ -54,27 +55,27 @@
   loop: "{{ linen_try_ports }}"
 
 - name: update fact "found_port" from tried port result
-  set_fact:
+  ansible.builtin.set_fact:
     found_port: "{{ try_port.results |json_query(\"[?state=='present'].port\")
-                  | default(['-'],true) |first }}"
+                  | d(['-'],true) |first }}"
   when: found_port == '-'
 
 - name: assert that ssh port is accessible
-  assert:
+  ansible.builtin.assert:
     that: found_port != '-'
     msg: "[{{ inventory_hostname }}] Cannot ping SSH on any port! Aborting."
     quiet: true
 
 - name: report detected ssh port
-  debug:
+  ansible.builtin.debug:
     msg: "Found SSH on port {{ found_port }} !.."
 
 
-# ===================================================
-# Probe different usernames, passwords and SSH keys.
+## ===================================================
+## Probe different usernames, passwords and SSH keys.
 
 - name: fix permissions on local key files (for ssh)
-  file:
+  ansible.builtin.file:
     path: "{{ item }}"
     mode: 0600
   when: item != ''  # noqa 602
@@ -86,18 +87,19 @@
   connection: local
   failed_when: false
 
-- include_tasks: probe.yml
+- name: probe tasks
+  ansible.builtin.include_tasks: probe.yml
   loop_control:
     loop_var: try_python
   loop: "{{ linen_try_real_pythons }}"
-  # Ansible does check the 'when' condition for *every* iteration, but
-  # performs these checks only at loop initialization. Hence, conditions
-  # are not reasserted on the *next* iteration, so the check below does
-  # *not* skip remaining loops after a successful finding. Life is pain.
-  # when: found_user == '-' or found_python == '-'
+  ## Ansible does check the 'when' condition for *every* iteration, but
+  ## performs these checks only at loop initialization. Hence, conditions
+  ## are not reasserted on the *next* iteration, so the check below does
+  ## *not* skip remaining loops after a successful finding. Life is pain.
+  ## when: found_user == '-' or found_python == '-'
 
 - name: assert that user and python are detected
-  assert:
+  ansible.builtin.assert:
     that: found_user != '-' and found_python != '-'
     msg: "[{{ inventory_hostname }}] Cannot detect user / python! Aborting."
     quiet: true

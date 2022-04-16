@@ -2,48 +2,48 @@
 - name: find, crate or rename user
   block:
     - name: set "user not changed" mark
-      set_fact:
+      ansible.builtin.set_fact:
         can_move: "-"
 
     - name: find or create new user
-      user:
+      ansible.builtin.user:
         name: "{{ new_user }}"
         uid: "{{ desired_uid or omit }}"
       register: user_data
   rescue:
     - name: fail instantly if error is not about non-unique id
-      assert:
+      ansible.builtin.assert:
         that: desired_uid != 0
         msg:
           - "Error creating new user:"
-          - "{{ user_data.msg | default(user_data) }}"
+          - "{{ user_data.msg |d(user_data) }}"
         quiet: true
 
     - name: find competing user entry
-      getent:
+      ansible.builtin.getent:
         database: passwd
         key: "{{ desired_uid }}"
     - name: extract old user name from passwd entry
-      set_fact:
+      ansible.builtin.set_fact:
         old_user: "{{ ansible_facts.getent_passwd | list | first }}"
     - name: extract old and new user id and home directory from passwd entry
-      set_fact:
+      ansible.builtin.set_fact:
         old_uid: "{{ ansible_facts.getent_passwd[old_user][1] }}"
         old_home: "{{ ansible_facts.getent_passwd[old_user][4] }}"
         new_home: "/home/{{ new_user }}"
         can_move: "{{ old_user in linen_scratch_users }}"
 
     - name: old user id must be equal to desired user id
-      assert:
+      ansible.builtin.assert:
         that: old_uid == desired_uid
         msg:
           - "Assertion error when creating user:"
           - "{{ old_uid }} != {{ desired_uid }}"
-          - "{{ user_data.msg | default(user_data) }}"
+          - "{{ user_data.msg |d(user_data) }}"
         quiet: true
 
     - name: warn about renamed user
-      debug:
+      ansible.builtin.debug:
         msg:
           - "Warning: renaming an existing user"
           - "- uid: {{ desired_uid }}"
@@ -53,7 +53,7 @@
           - "- new home: {{ new_home }}"
       when: can_move
     - name: warn about created user
-      debug:
+      ansible.builtin.debug:
         msg:
           - "Warning: creating a new user"
           - "- old user: {{ new_user }}"
@@ -62,27 +62,27 @@
           - "- renaming: {{ can_move }}"
       when: not can_move
     - name: wait a little before renaming user
-      pause:
+      ansible.builtin.pause:
         seconds: "{{ linen_pause_timeout }}"
 
     - name: rename user
-      include_tasks: rename.yml
+      ansible.builtin.include_tasks: rename.yml
       when: can_move
       tags: linen_rename_user
 
     - name: find renamed or create new user with free id
-      user:
+      ansible.builtin.user:
         name: "{{ new_user }}"
         non_unique: true
       register: user_data
 
     - block:
         - name: switch connection to created user
-          set_fact:
+          ansible.builtin.set_fact:
             ansible_ssh_user: "{{ new_user }}"
 
         - name: wait for reconnection
-          wait_for_connection:
+          ansible.builtin.wait_for_connection:
             timeout: "{{ linen_wait_timeout }}"
           register: result
           until: result is successful
@@ -93,33 +93,33 @@
 
 
 - name: unlock new user account
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /etc/shadow
     regexp: "^({{ new_user }}):!:(.*)$"
     line: '\1:*:\2'
     backrefs: true
 
 - name: add user to the sudoers group
-  user:
+  ansible.builtin.user:
     name: "{{ new_user }}"
     append: true
     groups: sudo
 
 - name: update ansible user name (postpone full setup)
-  set_fact:
+  ansible.builtin.set_fact:
     ansible_user_id: "{{ new_user }}"
 
 
 - name: check that actual user id is desired
-  set_fact:
+  ansible.builtin.set_fact:
     uid_ok: "{{ desired_uid
-              | ternary(user_data.uid | int == desired_uid | int, true) }}"
+              | ternary(user_data.uid |int == desired_uid |int, true) }}"
 - name: report success
-  debug:
+  ansible.builtin.debug:
     msg: "Success: user {{ new_user }} has uid {{ desired_uid }}"
   when: uid_ok
 - name: notice about user id
-  debug:
+  ansible.builtin.debug:
     msg: "Notice: user {{ new_user }} has uid {{ user_data.uid }} (wanted {{ desired_uid }})"
   when: not uid_ok
 ...

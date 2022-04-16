@@ -2,20 +2,20 @@
 # Current logic is simple: install python2 if not present.
 # In future, more methods will be implemented.
 - name: default is python2
-  set_fact:
+  ansible.builtin.set_fact:
     found_python: ""
   when: found_python == linen_default_python
 
 - name: change interpreter to python2
   block:
     - name: check that python2 is present
-      stat:
+      ansible.builtin.stat:
         path: "{{ linen_default_python }}"
         get_checksum: false
       register: python2_binary
 
     - name: check that python3 is present
-      stat:
+      ansible.builtin.stat:
         path: /usr/bin/python3
         get_checksum: false
       register: python3_binary
@@ -23,13 +23,13 @@
     - name: install pythons
       block:
         - name: apt install pythons without update (fast)
-          apt:
+          ansible.builtin.apt:
             name:
               - python
               - python3
       rescue:
         - name: apt install pythons with update (slower)
-          apt:
+          ansible.builtin.apt:
             name:
               - python
               - python3
@@ -40,10 +40,10 @@
       when: not (python2_binary.stat.exists and python3_binary.stat.exists)
 
     - name: switch connection to new python
-      set_fact:
+      ansible.builtin.set_fact:
         new_python: ""
         ansible_python_interpreter: "{{ linen_default_python }}"
   # when: 1. have to update; 2. force python2 anyway :)
   when: found_python != new_python
-        or new_python != ''         # noqa 602
+        or new_python != ''  # noqa 602
 ...

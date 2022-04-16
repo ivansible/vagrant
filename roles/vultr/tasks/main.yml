@@ -1,6 +1,6 @@
 ---
 - name: record server parameters
-  set_fact:
+  ansible.builtin.set_fact:
     vr_name: "{{ vultr_name }}"
     vr_invename: "{{ name }}"
     vr_os: "{{ vultr_os_map.get(vultr_os|lower, vultr_os) }}"
@@ -17,7 +17,7 @@
               else '' if (not vultr_inventory |bool)
               else vultr_inventory }}"
     script: enter-{{ vultr_ssh_port }}-{{ vultr_username }}-{{ vultr_uid }}.sh
-    # deliberately use ';' in the pipe to ignore chmod errors
+    ## deliberately use ';' in the pipe to ignore chmod errors
     keygen_cmd: 'chmod 600 "{{ keyfile }}"; ssh-keygen -y -f "{{ keyfile }}"'
     keyfile: "{{ vultr_key_file }}"
   tags:
@@ -26,7 +26,7 @@
 
 
 - name: initialize local vultr.ini
-  copy:
+  ansible.builtin.copy:
     dest: "{{ ansible_user_dir }}/.vultr.ini"
     content: |
       [default]
@@ -38,7 +38,7 @@
 
 
 - name: upload ssh key
-  vultr_ssh_key:
+  ngine_io.vultr.vultr_ssh_key:
     name: "{{ vr_key_name }}"
     ssh_key: "{{ vr_key_pub }}"
   connection: local
@@ -49,7 +49,7 @@
 
 
 - name: upload startup script
-  vultr_startup_script:
+  ngine_io.vultr.vultr_startup_script:
     name: "{{ vr_script_name }}"
     script: "{{ lookup('template', 'startup-script.sh') }}"
   tags:
@@ -58,7 +58,7 @@
 
 
 - name: create vultr server
-  vultr_server:
+  ngine_io.vultr.vultr_server:
     api_account: default
     api_key: "{{ vultr_api_key }}"
     name: "{{ vr_name }}"
@@ -77,7 +77,7 @@
 
 
 - name: record ip/port/user of new server
-  set_fact:
+  ansible.builtin.set_fact:
     vr_inven_entry: "ansible_host={{ ip_addr }} ansible_port={{ vr_ssh_port }} ansible_user={{ vr_username }}"
   vars:
     ip_addr: "{{ vr_server_result.vultr_server.v4_main_ip }}"
@@ -87,7 +87,7 @@
 
 
 - name: register new host in the ansible inventory
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: "{{ vultr_inventory_file }}"
     regexp: "^{{ vr_invename }} "
     line: "{{ vr_invename }}    {{ vr_inven_entry }}"
@@ -99,7 +99,7 @@
 
 
 - name: print new inventory entry
-  debug:
+  ansible.builtin.debug:
     msg:
       - "Inventory entry for your new host:"
       - "{{ vr_invename }}    {{ vr_inven_entry }}"

@@ -1,19 +1,19 @@
 ---
 - name: read settings
-  set_fact:
+  ansible.builtin.set_fact:
     new_port: "{{ linen_new_port
-                | default(orig_port, true)
-                | default(linen_port, true)
-                | default(ansible_ssh_port, true) }}"
+                | d(orig_port, true)
+                | d(linen_port, true)
+                | d(ansible_ssh_port, true) }}"
     new_user: "{{ linen_new_user
-                | default(orig_user, true)
-                | default(linen_user, true)
-                | default(ansible_user_id) }}"
+                | d(orig_user, true)
+                | d(linen_user, true)
+                | d(ansible_user_id) }}"
     new_keyfile: "{{ linen_new_keyfile_
-                   | default(orig_keyfile, true)
-                   | default(linen_keyfile_, true)
-                   | default(ansible_private_key_file, true)
-                   | default('') }}"
+                   | d(orig_keyfile, true)
+                   | d(linen_keyfile_, true)
+                   | d(ansible_private_key_file, true)
+                   | d('') }}"
     desired_uid: "{{ (linen_desired_uid | string in ['','0','no','false'])
                    | ternary(0, linen_desired_uid | int) }}"
     # always opt for python2 (temporary solution)
@@ -21,7 +21,7 @@
   tags: linen_settings
 
 - name: print new settings
-  debug:
+  ansible.builtin.debug:
     msg:
       - "******** ATTENTION! ********"
       - "New settings:"
@@ -32,19 +32,19 @@
       - "- uid (optional): {{ desired_uid }}"
   tags: linen_settings
 - name: please see new settings...
-  pause:
+  ansible.builtin.pause:
     seconds: "{{ linen_pause_timeout }}"
   tags: linen_settings
 
 - name: validate new user
-  assert:
+  ansible.builtin.assert:
     that: new_user not in ['','-','root']
     msg: "user name is invalid: {{ new_user }}"
     quiet: true
 
 
 - name: remove requiretty from sudoers
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /etc/sudoers
     regexp: '^(Defaults\s+requiretty.*)'
     state: absent
@@ -52,18 +52,18 @@
   tags: linen_requiretty
 
 - name: restore pipelining once requiretty is ok
-  set_fact:
+  ansible.builtin.set_fact:
     ansible_ssh_pipelining: "{{ lookup('config', 'ANSIBLE_PIPELINING') }}"
   tags: linen_requiretty
 
 
 - name: setup new ssh port
-  import_tasks: ssh.yml
+  ansible.builtin.import_tasks: ssh.yml
   tags: linen_ssh_port
 
 
 - name: enable password-less sudo in advance
-  copy:
+  ansible.builtin.copy:
     content: |
       # Allow sudo group members to execute commands without password
       %sudo  ALL=(ALL) NOPASSWD:ALL
@@ -74,11 +74,11 @@
   tags: linen_nopasswd
 
 - name: manage login user
-  import_tasks: user.yml
+  ansible.builtin.import_tasks: user.yml
   tags: linen_user
 
 - name: remove old-style no-passwd file
-  file:
+  ansible.builtin.file:
     path: "{{ item }}"
     state: absent
   loop:
@@ -88,10 +88,10 @@
 
 
 - name: manage ssh keys
-  import_tasks: keys.yml
+  ansible.builtin.import_tasks: keys.yml
   tags: linen_ssh_keys
 
 - name: manage python
-  import_tasks: python.yml
+  ansible.builtin.import_tasks: python.yml
   tags: linen_python
 ...

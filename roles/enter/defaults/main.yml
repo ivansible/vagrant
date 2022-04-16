@@ -54,9 +54,9 @@ linen_try_users:
 
 # port probe list
 linen_try_ports:
-  - "{{ ansible_port | default(0) }}"
-  - "{{ ansible_ssh_port | default(0) }}"
-  - "{{ linen_port | default(0) }}"
+  - "{{ ansible_port |d(0) }}"
+  - "{{ ansible_ssh_port |d(0) }}"
+  - "{{ linen_port |d(0) }}"
   - 22
 
 # python probe list

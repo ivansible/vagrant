@@ -1,11 +1,11 @@
 ---
 - name: check whether virtualbox guest additions are installed
-  stat:
+  ansible.builtin.stat:
     path: /sbin/rcvboxadd
   register: vbguest_tools
 
 - name: check whether guest additions kernel modules are up-to-date
-  stat:
+  ansible.builtin.stat:
     path: "{{ vag_vbguest_module_path }}"
   register: vbguest_kernel_module
 
@@ -14,12 +14,13 @@
     - name: temporarily unhold kernel packages
       ## this step runs with block only when kernel modules are absent
       # noqa no-changed-when
-      command: apt-mark unhold {{ packages }}
+      ansible.builtin.command:
+        cmd: apt-mark unhold {{ packages }}
       vars:
         packages: "{{ vag_vbguest_kernel_packages |join(' ') }}"
 
     - name: install prerequisites for virtualbox guest additions
-      apt:
+      ansible.builtin.apt:
         name:
           - linux-headers-generic
           - linux-headers-{{ ansible_kernel }}
@@ -27,10 +28,10 @@
 
     - name: rebuild kernel modules for virtualbox guest additions
       # noqa no-changed-when
-      command: /sbin/rcvboxadd quicksetup all
+      ansible.builtin.command: /sbin/rcvboxadd quicksetup all
 
     - name: restart guest additions services
-      systemd:
+      ansible.builtin.systemd:
         name: "{{ item }}"
         state: restarted
         enabled: true
@@ -45,7 +46,8 @@
 
 - name: freeze kernel version to prevent problems with guest additions
   when: vag_vbguest_freeze_kernel |bool
-  command: apt-mark hold {{ packages }}
+  ansible.builtin.command:
+    cmd: apt-mark hold {{ packages }}
   vars:
     packages: "{{ vag_vbguest_kernel_packages |join(' ') }}"
   become: true
